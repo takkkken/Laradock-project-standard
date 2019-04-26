@@ -26,17 +26,6 @@ Vagrant.configure(2) do |config|
     vb.customize ["modifyvm", :id, "--ioapic", "on"]
   end
 
-#  #vagrant reloadで実行してテスト用
-#  config.vm.provision :shell, run: "always", :inline => <<-EOT
-#    sudo su -
-#    cd #{GUEST_APP_DIR}/laradock
-#    pwd
-#    docker-compose up -d nginx postgres-postgis
-#    docker-compose ps
-#
-#  EOT
-
-
   #初回起動時のみ実行（この中は\は\でエスケープすること）
   config.vm.provision :shell, :inline => <<-EOT
 
@@ -101,6 +90,9 @@ DB_USERNAME=default
 DB_PASSWORD=secret
 EOF
 
+    # laradock側に移動
+    cd ../laradock
+
     # laravel-Admin Install
     docker-compose exec -T workspace sh -c "composer require encore/laravel-admin"
     docker-compose exec -T workspace sh -c 'php artisan vendor:publish --provider="Encore\\Admin\\AdminServiceProvider"'
@@ -108,6 +100,17 @@ EOF
 
 
   EOT
+
+  #vagrant reload時用
+  config.vm.provision :shell, run: "always", :inline => <<-EOT
+    sudo su -
+    cd #{GUEST_APP_DIR}/laradock
+    pwd
+    docker-compose up -d nginx postgres-postgis
+    docker-compose ps
+
+  EOT
+
 end
 
 
