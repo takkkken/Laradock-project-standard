@@ -58,17 +58,19 @@ Vagrant.configure(2) do |config|
 
     # Laravelのアプリパスを修正
     #sudo cp env-example .env
-    sed -e "s/APP_CODE_PATH_HOST=\\.\\.\\//APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/" env-example > .env
+    sed -e "s/APP_CODE_PATH_HOST=\\.\\.\\//APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/" env-example > env-example2
+    # mySQLのバージョン5.7に落とす
+    sed -e "s/MYSQL_VERSION=latest/MYSQL_VERSION=5.7/" env-example2 > .env
 
     # Image & Container build 超絶長い2時間位
-    docker-compose up -d nginx postgres-postgis
+    docker-compose up -d apache2 mysql
     docker-compose exec -T workspace sh -c "composer create-project --prefer-dist laravel/laravel #{APP_NAME}"
 
     # Laravelのアプリパスを再度修正（※注意　最初にアプリパスをAPP_NAMEに設定すると、APP_NAME/APP_NAMEのディレクトリ構成になるのであえて２度編集を加える）
     cat .env > .env.tmp
     sed -e "s/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}\\/#{APP_NAME}/" .env.tmp > .env
     rm .env.tmp
-    docker-compose up -d nginx postgres-postgis
+    docker-compose up -d apache2 mysql
 
     # アプリ側に移動
     cd ../#{APP_NAME}
@@ -76,15 +78,15 @@ Vagrant.configure(2) do |config|
     # ストレージのパーミッションを設定
     chmod 777 -R storage
 
-    # PostgreSQLの接続設定（デフォはMySQLの為MySQLの設定は削除）
+    # MySQL5.7向けの接続設定（デフォはMySQL8.0系の為DB_xxxを消して再度セットする）
     cat .env > .env.tmp
     sed -e "/^DB_/d" .env.tmp > .env
     #rm .env.tmp
     cat <<EOF >> .env
 
-DB_CONNECTION=pgsql
-DB_HOST=postgres-postgis
-DB_PORT=5432
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
 DB_DATABASE=default
 DB_USERNAME=default
 DB_PASSWORD=secret
@@ -96,8 +98,8 @@ EOF
     # laravel-Admin Install
     docker-compose exec -T workspace sh -c "composer require encore/laravel-admin"
     docker-compose exec -T workspace sh -c 'php artisan vendor:publish --provider="Encore\\Admin\\AdminServiceProvider"'
+    docker-compose exec -T workspace sh -c "php artisan migrate:fresh"
     docker-compose exec -T workspace sh -c "php artisan admin:install"
-
 
   EOT
 
@@ -106,7 +108,7 @@ EOF
     sudo su -
     cd #{GUEST_APP_DIR}/laradock
     pwd
-    docker-compose up -d nginx postgres-postgis
+    docker-compose up -d apache2 mysql
     docker-compose ps
 
   EOT
