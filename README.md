@@ -12,6 +12,8 @@ vagrant up && vagrant ssh
 ```
 
 ## 必要なもの
+* Git for Windows  
+https://gitforwindows.org/
 * Vagrant  
 https://www.vagrantup.com/downloads.html
 * VirtualBox  
