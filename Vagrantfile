@@ -99,7 +99,6 @@ EOF
     docker-compose exec -T workspace sh -c "composer dump-autoload"
     docker-compose exec -T workspace sh -c "artisan migrate:refresh --seed"
     docker-compose exec -T workspace sh -c "php artisan admin:install"
-	bash pg_build.sh
 
   EOT
 
