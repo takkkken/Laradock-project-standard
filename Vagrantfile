@@ -95,10 +95,11 @@ EOF
     # laradock側に移動
     cd ../laradock
 
-    # laravel-Admin Install
+    # laravel-Admin Install after pg migrating & seeding
     docker-compose exec -T workspace sh -c "composer require encore/laravel-admin"
     docker-compose exec -T workspace sh -c 'php artisan vendor:publish --provider="Encore\\Admin\\AdminServiceProvider"'
-    docker-compose exec -T workspace sh -c "php artisan migrate:fresh"
+    docker-compose exec -T workspace sh -c "composer dump-autoload"
+    docker-compose exec -T workspace sh -c "artisan migrate:refresh --seed"
     docker-compose exec -T workspace sh -c "php artisan admin:install"
 
   EOT
