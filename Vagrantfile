@@ -66,14 +66,17 @@ Vagrant.configure(2) do |config|
     docker-compose up -d apache2 mysql
     docker-compose exec -T workspace sh -c "composer create-project --prefer-dist laravel/laravel #{APP_NAME}"
 
-    # Laravelのアプリパスを再度修正（※注意　最初にアプリパスをAPP_NAMEに設定すると、APP_NAME/APP_NAMEのディレクトリ構成になるのであえて２度編集を加える）
-    cat .env > .env.tmp
+    # Laravelのアプリパスを再度修正（※注意　最初にアプリパスをAPP_NAMEに設定すると、APP_NAME/APP_NAMEのディレクトリ構成になるのであえて２度編集を加える）    cat .env > .env.tmp
     sed -e "s/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}\\/#{APP_NAME}/" .env.tmp > .env
     rm .env.tmp
+
     docker-compose up -d apache2 mysql
 
     # アプリ側に移動
     cd ../#{APP_NAME}
+
+    # apacheルートを強制的に変更するhtaccessファイルを設置（laradock/site/default.httpd.confとかをいじったがうまく行かず）
+    cp #{GUEST_DIR}/.htaccess ./
 
     # ストレージのパーミッションを設定
     chmod 777 -R storage
