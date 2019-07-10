@@ -57,29 +57,29 @@ Vagrant.configure(2) do |config|
     cd laradock
 
     # Laravelのアプリパスを修正
-    #sudo cp env-example .env
-    sed -e "s/APP_CODE_PATH_HOST=\\.\\.\\//APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/" env-example > .env
+    cp env-example .env
+    sed -i -e "s/APP_CODE_PATH_HOST=\\.\\.\\//APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/" .env
 
     # Image & Container build 超絶長い2時間位
     docker-compose up -d nginx postgres-postgis
     docker-compose exec -T workspace sh -c "composer create-project --prefer-dist laravel/laravel #{APP_NAME}"
 
     # Laravelのアプリパスを再度修正（※注意　最初にアプリパスをAPP_NAMEに設定すると、APP_NAME/APP_NAMEのディレクトリ構成になるのであえて２度編集を加える）
-    cat .env > .env.tmp
-    sed -e "s/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}\\/#{APP_NAME}/" .env.tmp > .env
-    rm .env.tmp
+    sed -i -e "s/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}\\/#{APP_NAME}/" .env
+
     docker-compose up -d nginx postgres-postgis
 
     # アプリ側に移動
     cd ../#{APP_NAME}
 
+    # apacheルートを強制的に変更するhtaccessファイルを設置（laradock/site/default.httpd.confとかをいじったがうまく行かず）
+    cp #{GUEST_DIR}/.htaccess ./
+
     # ストレージのパーミッションを設定
     chmod 777 -R storage
 
     # PostgreSQLの接続設定（デフォはMySQLの為MySQLの設定は削除）
-    cat .env > .env.tmp
-    sed -e "/^DB_/d" .env.tmp > .env
-    #rm .env.tmp
+    sed -i -e "/^DB_/d" .env
     cat <<EOF >> .env
 
 DB_CONNECTION=pgsql
@@ -97,7 +97,7 @@ EOF
     docker-compose exec -T workspace sh -c "composer require encore/laravel-admin"
     docker-compose exec -T workspace sh -c 'php artisan vendor:publish --provider="Encore\\Admin\\AdminServiceProvider"'
     docker-compose exec -T workspace sh -c "composer dump-autoload"
-    docker-compose exec -T workspace sh -c "artisan migrate:refresh --seed"
+    docker-compose exec -T workspace sh -c "php artisan migrate:refresh --seed"
     docker-compose exec -T workspace sh -c "php artisan admin:install"
 
   EOT
@@ -107,7 +107,7 @@ EOF
     sudo su -
     cd #{GUEST_APP_DIR}/laradock
     pwd
-    docker-compose up -d nginx postgres-postgis
+    docker-compose up --no-recreate -d nginx postgres-postgis
     docker-compose ps
 
   EOT
