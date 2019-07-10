@@ -56,19 +56,20 @@ Vagrant.configure(2) do |config|
     git clone https://github.com/Laradock/laradock.git
     cd laradock
 
-    # Laravelのアプリパスを修正
-    #sudo cp env-example .env
-    sed -e "s/APP_CODE_PATH_HOST=\\.\\.\\//APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/" env-example > env-example2
+    # laradock下の.envを作成
+    cp env-example .env
+    # Laravelのアプリパス変更
+    sed -i -e "s/APP_CODE_PATH_HOST=\\.\\.\\//APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/" .env
     # mySQLのバージョン5.7に落とす
-    sed -e "s/MYSQL_VERSION=latest/MYSQL_VERSION=5.7/" env-example2 > .env
+    sed -i -e "s/MYSQL_VERSION=latest/MYSQL_VERSION=5.7/" .env
+    sed -i -e "s/DATA_PATH_HOST=.+/DATA_PATH_HOST=\\/opt\\/app\\/data/" .env
 
     # Image & Container build 超絶長い2時間位
     docker-compose up -d apache2 mysql
     docker-compose exec -T workspace sh -c "composer create-project --prefer-dist laravel/laravel #{APP_NAME}"
 
     # Laravelのアプリパスを再度修正（※注意　最初にアプリパスをAPP_NAMEに設定すると、APP_NAME/APP_NAMEのディレクトリ構成になるのであえて２度編集を加える）    cat .env > .env.tmp
-    sed -e "s/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}\\/#{APP_NAME}/" .env.tmp > .env
-    rm .env.tmp
+    sed -i -e "s/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}/APP_CODE_PATH_HOST=#{GUEST_APP_DIR2}\\/#{APP_NAME}/" .env
 
     docker-compose up -d apache2 mysql
 
@@ -82,9 +83,7 @@ Vagrant.configure(2) do |config|
     chmod 777 -R storage
 
     # MySQL5.7向けの接続設定（デフォはMySQL8.0系の為DB_xxxを消して再度セットする）
-    cat .env > .env.tmp
-    sed -e "/^DB_/d" .env.tmp > .env
-    #rm .env.tmp
+    sed -i -e "/^DB_/d" .env
     cat <<EOF >> .env
 
 DB_CONNECTION=mysql
@@ -102,7 +101,7 @@ EOF
     docker-compose exec -T workspace sh -c "composer require encore/laravel-admin"
     docker-compose exec -T workspace sh -c 'php artisan vendor:publish --provider="Encore\\Admin\\AdminServiceProvider"'
     docker-compose exec -T workspace sh -c "composer dump-autoload"
-    docker-compose exec -T workspace sh -c "artisan migrate:refresh --seed"
+    docker-compose exec -T workspace sh -c "php artisan migrate:refresh --seed"
     docker-compose exec -T workspace sh -c "php artisan admin:install"
 
   EOT
