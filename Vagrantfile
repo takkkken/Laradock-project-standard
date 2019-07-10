@@ -111,7 +111,7 @@ EOF
     sudo su -
     cd #{GUEST_APP_DIR}/laradock
     pwd
-    docker-compose up -d apache2 mysql
+    docker-compose --no-recreate up -d apache2 mysql
     docker-compose ps
 
   EOT
